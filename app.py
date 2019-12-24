@@ -27,7 +27,7 @@ class JobPost:
         self.description = sanitize(item.description.text)
 
     def containsText(self, text):
-        return text in self.title or text in self.company or text in self.description
+        return text in self.title or text in self.company
 
     def __repr__(self):
         return (
@@ -93,7 +93,8 @@ filtered_content = [
     'Intern',
     'France',
     'Switzerland',
-    'Deutschland'
+    'Deutschland',
+    'Italy',
 ]
 
 
