@@ -56,15 +56,15 @@ def send_email(job_posts):
 
 
 def download_jobs():
-    keywords = [
+    technologies = [
         'spring',
         'java',
         'python',
     ]
     offers_visa_sponsorship = 'true'
     offers_relocation = 'true'
-    keywords_in_url = '+'.join(keywords)
-    jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={keywords_in_url}'
+    technologies_in_url = '+'.join(technologies)
+    jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={technologies_in_url}'
     print('Downloading jobs from', jobs_url)
     return requests.get(jobs_url).text
 
