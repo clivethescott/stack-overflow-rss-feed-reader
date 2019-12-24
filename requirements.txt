@@ -1,4 +1,4 @@
 requests
-beatifulsoup4
+beautifulsoup4
 lxml
 yagmail[all]
