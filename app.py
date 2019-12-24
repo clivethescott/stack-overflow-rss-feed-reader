@@ -59,8 +59,10 @@ def download_jobs():
         'java',
         'python',
     ]
+    offers_visa_sponsorship = 'true'
+    offers_relocation = 'true'
     keywords_in_url = '+'.join(keywords)
-    jobs_url = f'https://stackoverflow.com/jobs/feed?tl={keywords_in_url}'
+    jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={keywords_in_url}'
     print('Downloading jobs from', jobs_url)
     return requests.get(jobs_url).text
 
