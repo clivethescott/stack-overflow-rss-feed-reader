@@ -30,11 +30,12 @@ class JobPost:
 
 def send_email(job_posts):
 
-    print(f'Sending email for {len(job_posts)} jobs')
-
     if not job_posts:
         print('No job posts could be found')
         return
+
+    print(f'Sending email for {len(job_posts)} jobs')
+
     yag = yagmail.SMTP()
     subject = 'Stack Overflow Job Posts for today'
     yag.send(subject=subject, contents=job_posts)
