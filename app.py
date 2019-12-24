@@ -7,12 +7,13 @@ import yagmail
 from bs4 import BeautifulSoup
 
 duplicate_line_breaks_pattern = r'(?:<br\s*?(?:>|/>)){2,}'
+duplicate_line_regex = re.compile(duplicate_line_breaks_pattern)
 
 
 def sanitize(text):
     if not text:
         return ''
-    return re.sub(duplicate_line_breaks_pattern, '<br/>', text)
+    return duplicate_line_regex.sub('<br/>', text)
 
 
 class JobPost:
