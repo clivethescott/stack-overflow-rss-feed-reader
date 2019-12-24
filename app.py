@@ -1,9 +1,18 @@
 import datetime
 import os
+import re
 
 import requests
 import yagmail
 from bs4 import BeautifulSoup
+
+duplicate_line_breaks_pattern = r'(?:<br\s*?(?:>|/>)){2,}'
+
+
+def sanitize(text):
+    if not text:
+        return ''
+    return re.sub(duplicate_line_breaks_pattern, '<br/>', text)
 
 
 class JobPost:
@@ -15,7 +24,10 @@ class JobPost:
         self.categories = ', '.join(categories)
         self.title = item.title.text
         self.published_on = item.pubDate.text
-        self.description = item.description.text
+        self.description = sanitize(item.description.text)
+
+    def containsText(self, text):
+        return text in self.title or text in self.company or text in self.description
 
     def __repr__(self):
         return (
@@ -72,9 +84,29 @@ def is_todays_job_post(data):
     return today == post_date.date()
 
 
+filtered_content = [
+    'India',
+    'Japan',
+    'China',
+    'Intern',
+    'France',
+    'Switzerland',
+]
+
+
+def is_wanted_post(post):
+    for tag in filtered_content:
+        if post.containsText(tag):
+            return False
+    return True
+
+
 content = download_jobs()
 soup = BeautifulSoup(content, 'xml')
-job_posts = [str(JobPost(data))
+job_posts = [JobPost(data)
              for data in soup.find_all('item') if is_todays_job_post(data)]
-# send_email(job_posts)
-print(job_posts)
+print(f'Found {len(job_posts)} jobs for today')
+wanted_job_posts = [str(post) for post in (filter(is_wanted_post, job_posts))]
+print(f'Actual wanted jobs = {len(wanted_job_posts)}')
+send_email(wanted_job_posts)
+# print(wanted_job_posts)
