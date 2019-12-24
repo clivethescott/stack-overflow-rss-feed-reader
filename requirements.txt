@@ -1,0 +1,4 @@
+requests
+beatifulsoup4
+lxml
+yagmail[all]
