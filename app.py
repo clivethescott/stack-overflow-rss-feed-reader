@@ -120,12 +120,25 @@ def is_wanted_post(post):
     return True
 
 
+def parse_job_posts(content):
+    soup = BeautifulSoup(content, 'xml')
+    for item in soup.find_all('item'):
+        if is_todays_job_post(item):
+            yield JobPost(item)
+
+
+def get_wanted_job_posts(posts):
+    for post in posts:
+        if is_wanted_post(post):
+            yield str(post)
+
+
+def get_job_posts(content):
+    job_posts = parse_job_posts(content)
+    return get_wanted_job_posts(job_posts)
+
+
 content = download_jobs()
-soup = BeautifulSoup(content, 'xml')
-job_posts = [JobPost(data)
-             for data in soup.find_all('item') if is_todays_job_post(data)]
-print(f'Found {len(job_posts)} jobs for today')
-wanted_job_posts = [str(post) for post in (filter(is_wanted_post, job_posts))]
-print(f'Actual wanted jobs = {len(wanted_job_posts)}')
-send_email(wanted_job_posts)
-# print(wanted_job_posts)
+wanted_job_posts = list(get_job_posts(content))
+# send_email(wanted_job_posts)
+print(wanted_job_posts)
