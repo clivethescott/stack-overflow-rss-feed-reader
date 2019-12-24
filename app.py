@@ -48,9 +48,11 @@ def send_email(job_posts):
 
     print(f'Sending email for {len(job_posts)} jobs')
 
-    yag = yagmail.SMTP()
     subject = 'Stack Overflow Job Posts for today'
-    yag.send(subject=subject, contents=job_posts)
+    pwd = os.path.expandvars('$YAGMAIL_PASSWORD')
+    sender = 'clivethescott@gmail.com'
+    with yagmail.SMTP(sender, pwd) as yag:
+        yag.send(subject=subject, contents=job_posts)
 
 
 def download_jobs():
@@ -95,7 +97,7 @@ filtered_content = [
     'Switzerland',
     'Deutschland',
     'Italy',
-    'Austria'
+    'Austria',
     'Android',
     'iOS',
     'Big Data',
