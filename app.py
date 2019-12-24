@@ -103,7 +103,7 @@ filtered_content = [
     'Big Data',
     'Cloud Engineer',
     'Cloud Native',
-    'Cloud Infrastructure'
+    'Cloud Infrastructure',
     'Apache Spark',
     'Site Reliability',
     'Machine Learning',
