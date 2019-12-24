@@ -95,6 +95,18 @@ filtered_content = [
     'Switzerland',
     'Deutschland',
     'Italy',
+    'Austria'
+    'Android',
+    'iOS',
+    'Big Data',
+    'Cloud Engineer',
+    'Cloud Native',
+    'Cloud Infrastructure'
+    'Apache Spark',
+    'Site Reliability',
+    'Machine Learning',
+    'PhD',
+
 ]
 
 
