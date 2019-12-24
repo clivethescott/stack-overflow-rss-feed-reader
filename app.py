@@ -63,8 +63,8 @@ def download_jobs():
     ]
     offers_visa_sponsorship = 'true'
     offers_relocation = 'true'
-    technologies_in_url = '+'.join(technologies)
-    jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={technologies_in_url}'
+    url_encoded_technologies = '+'.join(technologies)
+    jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={url_encoded_technologies}'
     print('Downloading jobs from', jobs_url)
     return requests.get(jobs_url).text
 
