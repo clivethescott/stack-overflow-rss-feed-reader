@@ -5,6 +5,7 @@ import re
 import requests
 import yagmail
 from bs4 import BeautifulSoup
+from langdetect import detect
 
 duplicate_line_breaks_pattern = r'(?:<br\s*?(?:>|/>)){2,}'
 duplicate_line_regex = re.compile(duplicate_line_breaks_pattern)
@@ -58,8 +59,7 @@ def send_email(job_posts):
 
 def download_jobs():
     technologies = [
-        'spring',
-        'spring boot',
+        'spring+boot',
         'java',
     ]
     offers_visa_sponsorship = 'true'
@@ -113,11 +113,15 @@ filtered_content = [
 ]
 
 
+def is_english(text):
+    return detect(text[:50]) != 'en'
+
+
 def is_wanted_post(post):
     for tag in filtered_content:
         if post.containsText(tag):
             return False
-    return True
+    return is_english(post.description)
 
 
 def parse_job_posts(content):
