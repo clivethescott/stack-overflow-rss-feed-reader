@@ -50,7 +50,7 @@ def send_email(job_posts):
     print(f'Sending email for {len(job_posts)} jobs')
 
     subject = 'Stack Overflow Job Posts for today'
-    pwd = os.path.expandvars('$YAGMAIL_PASSWORD')
+    pwd = os.environ.get('YAGMAIL_PASSWORD')
     sender = 'clivethescott@gmail.com'
     with yagmail.SMTP(sender, pwd) as yag:
         yag.send(subject=subject, contents=job_posts)
@@ -59,8 +59,8 @@ def send_email(job_posts):
 def download_jobs():
     technologies = [
         'spring',
+        'spring boot',
         'java',
-        'python',
     ]
     offers_visa_sponsorship = 'true'
     offers_relocation = 'true'
@@ -140,5 +140,5 @@ def get_job_posts(content):
 
 content = download_jobs()
 wanted_job_posts = list(get_job_posts(content))
-# send_email(wanted_job_posts)
-print(wanted_job_posts)
+send_email(wanted_job_posts)
+# print(wanted_job_posts)
