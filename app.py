@@ -114,7 +114,7 @@ filtered_content = [
 
 
 def is_english(text):
-    return detect(text[:50]) != 'en'
+    return detect(text[:50]) == 'en'
 
 
 def is_wanted_post(post):
