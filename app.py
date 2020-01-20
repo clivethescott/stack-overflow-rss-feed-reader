@@ -78,13 +78,13 @@ def use_local_jobs():
         return f.read()
 
 
-date_format = '%a, %d %b %Y %H:%M:%S %z'
+date_format = '%a, %d %b %Y %H:%M:%S %Z'
 today = datetime.date.today()
 
 
 def is_todays_job_post(data):
 
-    date_str = data.pubDate.text
+    date_str = data.pubDate.text.replace('Z', 'UTC')
     post_date = datetime.datetime.strptime(date_str, date_format)
     return today == post_date.date()
 
