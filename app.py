@@ -51,9 +51,8 @@ def send_email(job_posts):
     print(f'Sending email for {len(job_posts)} jobs')
 
     subject = 'Stack Overflow Job Posts for today'
-    pwd = os.environ.get('YAGMAIL_PASSWORD')
     sender = 'clivethescott@gmail.com'
-    with yagmail.SMTP(sender, pwd) as yag:
+    with yagmail.SMTP(sender) as yag:
         yag.send(subject=subject, contents=job_posts)
 
 
