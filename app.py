@@ -66,7 +66,7 @@ def download_jobs():
     url_encoded_technologies = '+'.join(technologies)
     jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={url_encoded_technologies}'
     print('Downloading jobs from', jobs_url)
-    return requests.get(jobs_url).text
+    return requests.get(jobs_url).content
 
 
 def use_local_jobs():
