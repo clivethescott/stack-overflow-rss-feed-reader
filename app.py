@@ -1,94 +1,24 @@
 import datetime
 import os
 import re
+import webbrowser
 
 import requests
 import yagmail
 from bs4 import BeautifulSoup
 from langdetect import detect
 
-duplicate_line_breaks_pattern = r'(?:<br\s*?(?:>|/>)){2,}'
-duplicate_line_regex = re.compile(duplicate_line_breaks_pattern)
+from job_post import JobPost
 
+TECHNOLOGIES = '+'.join([
+    'spring+boot',
+    'java',
+])
+OFFERS_VISA_SPONSORSHIP = 'true'
+OFFERS_RELOCATION = 'true'
+JOBS_URL = f'https://stackoverflow.com/jobs/feed?t={OFFERS_RELOCATION}&v={OFFERS_VISA_SPONSORSHIP}&tl={TECHNOLOGIES}'
 
-def sanitize(text):
-    if not text:
-        return ''
-    return duplicate_line_regex.sub('<br/>', text)
-
-
-class JobPost:
-
-    def __init__(self, item):
-        self.url = item.link.text
-        self.company = item.find('a10:name').text
-        categories = [c.string for c in item.find_all('category')]
-        self.categories = ', '.join(categories)
-        self.title = item.title.text
-        self.published_on = item.pubDate.text
-        self.description = sanitize(item.description.text)
-
-    def containsText(self, text):
-        return text in self.title or text in self.company
-
-    def __repr__(self):
-        return (
-            f'\n\n----------------------------------------------------------------------\n\n'
-            f'{self.company} @ {self.published_on}\n'
-            f'{self.title}\n'
-            f'{self.url}\n'
-            f'{self.categories}\n\n'
-            f'{self.description}'
-        )
-
-
-def send_email(job_posts):
-
-    if not job_posts:
-        print('No job posts could be found')
-        return
-
-    print(f'Sending email for {len(job_posts)} jobs')
-
-    subject = 'Stack Overflow Job Posts for today'
-    sender = 'clivethescott@gmail.com'
-    with yagmail.SMTP(sender) as yag:
-        yag.send(subject=subject, contents=job_posts)
-
-
-def download_jobs():
-    technologies = [
-        'spring+boot',
-        'java',
-    ]
-    offers_visa_sponsorship = 'true'
-    offers_relocation = 'true'
-    url_encoded_technologies = '+'.join(technologies)
-    jobs_url = f'https://stackoverflow.com/jobs/feed?t={offers_relocation}&v={offers_visa_sponsorship}&tl={url_encoded_technologies}'
-    print('Downloading jobs from', jobs_url)
-    return requests.get(jobs_url).content
-
-
-def use_local_jobs():
-    print('Using local jobs...')
-    local_jobs_file = os.path.expandvars(
-        '$HOME/Downloads/stack_overflow_feed.xml')
-    with open(local_jobs_file) as f:
-        return f.read()
-
-
-date_format = '%a, %d %b %Y %H:%M:%S %Z'
-today = datetime.date.today()
-
-
-def is_todays_job_post(data):
-
-    date_str = data.pubDate.text.replace('Z', 'UTC')
-    post_date = datetime.datetime.strptime(date_str, date_format)
-    return today == post_date.date()
-
-
-filtered_content = [
+EXCLUDED = [
     'India',
     'Japan',
     'China',
@@ -108,40 +38,95 @@ filtered_content = [
     'Site Reliability',
     'Machine Learning',
     'PhD',
-
 ]
+
+DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %Z'
+DUPLICATE_LINE_BREAKS_PATTERN = r'(?:<br\s*?(?:>|/>)){2,}'
+DUPLICATE_LINE_REGEX = re.compile(DUPLICATE_LINE_BREAKS_PATTERN)
+
+
+def remove_duplicate_line_breaks(text: str):
+    """ Removes duplicate line breaks i.e </br>'s """
+    if not text:
+        return ''
+    return DUPLICATE_LINE_REGEX.sub('<br/>', text)
+
+
+def email(job_posts: [JobPost]):
+    print(f'Sending email for {len(job_posts)} jobs')
+
+    subject = 'Stack Overflow Job Posts for today'
+    sender = 'clivethescott@gmail.com'
+    with yagmail.SMTP(sender) as yag:
+        yag.send(subject=subject, contents=job_posts)
+
+
+def open_in_browser(url: str):
+    webbrowser.open_new_tab(url)
+
+
+def view(job_posts: [JobPost]):
+    if len(job_posts) > 10:
+        print('Got more than 10 jobs')
+        print(job_posts)
+    for post in job_posts:
+        open_in_browser(post.url)
+
+
+def notify(job_posts: [JobPost]):
+    if not job_posts:
+        print('No job posts could be found')
+        return
+    view(job_posts)
+
+
+def is_todays_job_post(data):
+    date_str = data.pubDate.text.replace('Z', 'UTC')
+    post_date = datetime.datetime.strptime(date_str, DATE_FORMAT)
+    today = datetime.date.today()
+    return today == post_date.date()
 
 
 def is_english(text):
     return detect(text[:50]) == 'en'
 
 
-def is_wanted_post(post):
-    for tag in filtered_content:
-        if post.containsText(tag):
+def include_post(post):
+    for tag in EXCLUDED:
+        if post.contains(tag):
             return False
     return is_english(post.description)
+
+
+def create_job_post(item) -> JobPost:
+    url = item.link.text
+    company = item.find('a10:name').text
+    categories = ', '.join(
+        category.string for category in item.find_all('category'))
+    title = item.title.text
+    published_on = item.pubDate.text
+    description = remove_duplicate_line_breaks(item.description.text)
+
+    return JobPost(url, company, categories, title, published_on, description)
 
 
 def parse_job_posts(content):
     soup = BeautifulSoup(content, 'xml')
     for item in soup.find_all('item'):
         if is_todays_job_post(item):
-            yield JobPost(item)
+            job_post = create_job_post(item)
+            yield job_post
 
 
-def get_wanted_job_posts(posts):
-    for post in posts:
-        if is_wanted_post(post):
-            yield str(post)
+def matching_jobs(content) -> [JobPost]:
+    return (post for post in parse_job_posts(content) if include_post(post))
 
 
-def get_job_posts(content):
-    job_posts = parse_job_posts(content)
-    return get_wanted_job_posts(job_posts)
+def download_jobs():
+    print('Downloading jobs from', JOBS_URL)
+    return requests.get(JOBS_URL).content
 
 
-content = download_jobs()
-wanted_job_posts = list(get_job_posts(content))
-send_email(wanted_job_posts)
-# print(wanted_job_posts)
+all_jobs = download_jobs()
+matches = list(matching_jobs(all_jobs))
+notify(matches)
