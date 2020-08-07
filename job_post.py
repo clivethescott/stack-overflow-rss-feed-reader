@@ -1,5 +1,8 @@
+from typing import Sequence
+
+
 class JobPost:
-    def __init__(self, url: str, company: str, categories: [str], title: str,
+    def __init__(self, url: str, company: str, categories: Sequence[str], title: str,
                  published_on: str, description: str):
         self.url = url
         self.company = company
@@ -13,9 +16,11 @@ class JobPost:
 
     def __repr__(self):
         return (
-            f'{self.company} @ {self.published_on}\n'
-            f'{self.title}\n'
-            f'{self.url}\n'
-            f'{self.categories}\n\n'
-            f'{self.description}'
+            f"""
+            {self.company} @ {self.published_on}\n
+            {self.title}\n
+            {self.url}\n
+            {self.categories}\n
+            {self.description}
+            """
         )
