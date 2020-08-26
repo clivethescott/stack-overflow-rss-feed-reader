@@ -1,6 +1,6 @@
 import os
 import webbrowser
-import feedparser # type: ignore
+import feedparser  # type: ignore
 from datetime import datetime, date
 from typing import List
 from langdetect import detect  # type: ignore
@@ -70,6 +70,9 @@ class JobPost:
         return text in self.title or text in self.summary or text in self.location
 
     def __str__(self):
+        return self.title
+
+    def render_html(self):
         return f"""
         >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
          -> <p>{self.title}</p>
@@ -105,7 +108,7 @@ def include_post(post: JobPost) -> bool:
 
 
 def write_output(posts: List[JobPost]) -> None:
-    content = '\n'.join(str(post) for post in posts if include_post(post))
+    content = '\n'.join(post.render_html() for post in posts if include_post(post))
     with open(OUTPUT_FILE, mode='wt') as f:
         f.write(HTML_HEADER)
         f.write(content)
