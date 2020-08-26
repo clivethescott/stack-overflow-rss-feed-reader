@@ -1,30 +1,17 @@
-import datetime
 import os
-import re
 import webbrowser
-import requests
-import yagmail #type: ignore
-from typing import Sequence, Generator
-from bs4 import BeautifulSoup #type: ignore
-from langdetect import detect #type: ignore
+import feedparser # type: ignore
+from datetime import datetime, date
+from typing import List
+from langdetect import detect  # type: ignore
 
-from job_post import JobPost
-
-TECHNOLOGIES = '+'.join([
-    'spring+boot',
-    'java',
-])
-OFFERS_VISA_SPONSORSHIP = 'true'
-OFFERS_RELOCATION = 'true'
-JOBS_URL = f'https://stackoverflow.com/jobs/feed?t={OFFERS_RELOCATION}&v={OFFERS_VISA_SPONSORSHIP}&tl={TECHNOLOGIES}'
+from dateutil.parser import parse as parse_date
+from dateutil.tz import tzlocal
 
 EXCLUDED = [
     'India',
-    'Japan',
     'China',
-    'Intern',
     'France',
-    'Switzerland',
     'Deutschland',
     'Italy',
     'Austria',
@@ -40,93 +27,98 @@ EXCLUDED = [
     'PhD',
 ]
 
-DATE_FORMAT = '%a, %d %b %Y %H:%M:%S %Z'
-DUPLICATE_LINE_BREAKS_PATTERN = r'(?:<br\s*?(?:>|/>)){2,}'
-DUPLICATE_LINE_REGEX = re.compile(DUPLICATE_LINE_BREAKS_PATTERN)
+TECHNOLOGIES = '+'.join([
+    'spring+boot',
+    'java',
+])
+OFFERS_VISA_SPONSORSHIP = 'true'
+OFFERS_RELOCATION = 'true'
+JOBS_URL = f'https://stackoverflow.com/jobs/feed?t={OFFERS_RELOCATION}&v={OFFERS_VISA_SPONSORSHIP}&tl={TECHNOLOGIES}'
+DATE_FORMAT = ''
+HTML_HEADER = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>Job Posts</title>
+    </head>
+    <body>
+"""
+HTML_FOOTER = """
+    </body>
+</html>
+"""
+OUTPUT_FILE = 'output.html'
+
+time_zone = tzlocal()
+today = date.today()
 
 
-def remove_duplicate_line_breaks(text: str) -> str:
-    """ Removes duplicate line breaks i.e </br>'s """
-    if not text:
-        return ''
-    return DUPLICATE_LINE_REGEX.sub('<br/>', text)
+class JobPost:
+    """Represent a single job post"""
+
+    def __init__(self, link: str, tags: List[str], title: str, summary: str, location: str, updated: datetime):
+        self.link = link
+        self.tags = tags
+        self.title = title
+        self.summary = summary
+        self.location = location
+        self.updated = updated
+
+    def contains(self, text: str) -> bool:
+        return text in self.title or text in self.summary or text in self.location
+
+    def __str__(self):
+        return f"""
+        >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 
+         -> <p>{self.title}</p>
+            <p>{self.location}</p>
+            <p>{self.updated}</p>
+            <a href="{self.link}">{self.link}</a>
+            <p>{', '.join(self.tags)}</p>
+            <p>{self.summary}</p>
+        """
 
 
-def email(job_posts: Sequence[JobPost]) -> None:
-    print(f'Sending email for {len(job_posts)} jobs')
-
-    subject = 'Stack Overflow Job Posts for today'
-    sender = 'clivethescott@gmail.com'
-    with yagmail.SMTP(sender) as yag:
-        yag.send(subject=subject, contents=job_posts)
+def non_english(text: str) -> bool:
+    return detect(text[:30]) != 'en'
 
 
-def open_in_browser(url: str) -> None:
-    webbrowser.open_new_tab(url)
-
-
-def view(job_posts: Sequence[JobPost]) -> None:
-    if len(job_posts) > 10:
-        print('Got more than 10 jobs')
-        print(job_posts)
-    for post in job_posts:
-        open_in_browser(post.url)
-
-
-def notify(job_posts: Sequence[JobPost]) -> None:
-    if not job_posts:
-        print('No job posts could be found')
-        return
-    view(job_posts)
-
-
-def is_todays_job_post(data) -> bool:
-    date_str = data.pubDate.text.replace('Z', 'UTC')
-    post_date = datetime.datetime.strptime(date_str, DATE_FORMAT)
-    today = datetime.date.today()
-    return today == post_date.date()
-
-
-def is_english(text: str) -> bool:
-    return detect(text[:50]) == 'en'
-
-
-def create_job_post(item) -> JobPost:
-    url = item.link.text
-    company = item.find('a10:name').text
-    categories = ', '.join(
-        category.string for category in item.find_all('category'))
-    title = item.title.text
-    published_on = item.pubDate.text
-    description = remove_duplicate_line_breaks(item.description.text)
-
-    return JobPost(url, company, categories, title, published_on, description)
-
-
-def parse_job_posts(content: bytes) -> Generator[JobPost, None, None]:
-    soup = BeautifulSoup(content, 'xml')
-    for item in soup.find_all('item'):
-        if is_todays_job_post(item):
-            job_post = create_job_post(item)
-            yield job_post
+def to_job_post(entry) -> JobPost:
+    link = entry['link']
+    tags = [tag['term'] for tag in entry['tags']]
+    title = entry['title'].strip()
+    summary = entry['summary'].strip()
+    location = entry['location'].strip()
+    updated = parse_date(entry['updated']).astimezone(time_zone)
+    return JobPost(link, tags, title, summary, location, updated)
 
 
 def include_post(post: JobPost) -> bool:
+    if post.updated.date() != today or non_english(post.summary):
+        return False
     for tag in EXCLUDED:
         if post.contains(tag):
             return False
-    return is_english(post.description)
+    return True
 
 
-def matching_jobs(content: bytes) -> Generator[JobPost, None, None]:
-    return (post for post in parse_job_posts(content) if include_post(post))
+def write_output(posts: List[JobPost]) -> None:
+    content = '\n'.join(str(post) for post in posts if include_post(post))
+    with open(OUTPUT_FILE, mode='wt') as f:
+        f.write(HTML_HEADER)
+        f.write(content)
+        f.write(HTML_FOOTER)
+    webbrowser.open_new_tab('file://{}'.format(os.path.realpath(OUTPUT_FILE)))
 
 
-def download_jobs() -> bytes:
-    print('Downloading jobs from', JOBS_URL)
-    return requests.get(JOBS_URL).content
+def main() -> None:
+    data = feedparser.parse(JOBS_URL)
+    entries = data['entries']
+    posts = [to_job_post(entry) for entry in entries]
+    write_output(posts)
 
 
-all_jobs = download_jobs()
-matches = list(matching_jobs(all_jobs))
-notify(matches)
+if __name__ == "__main__":
+    main()
